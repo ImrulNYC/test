@@ -1,26 +1,13 @@
 import os
 import torch
-import boto3
 import streamlit as st
 from transformers import AutoConfig, AutoModelForImageClassification, ViTFeatureExtractor
 from safetensors.torch import load_file
 from PIL import Image
-
-# AWS S3 Configuration using Streamlit secrets
-aws_access_key_id = st.secrets["aws_access_key_id"]
-aws_secret_access_key = st.secrets["aws_secret_access_key"]
-region_name = st.secrets["region_name"]
-
-# S3 client
-s3_client = boto3.client(
-    "s3",
-    aws_access_key_id=aws_access_key_id,
-    aws_secret_access_key=aws_secret_access_key,
-    region_name=region_name
-)
+import urllib.request
 
 # Bucket and model keys
-BUCKET_NAME = "flowerm"
+BUCKET_URL = "s3://flowerm/model.safetensors"
 MODEL_KEY = "model.safetensors"
 CONFIG_KEY = "config.json"
 PREPROCESSOR_KEY = "preprocessor_config.json"
@@ -30,13 +17,13 @@ model_path = "/tmp/model.safetensors"
 config_path = "/tmp/config.json"
 preprocessor_path = "/tmp/preprocessor_config.json"
 
-# Function to download model components from S3
-def download_file_from_s3(bucket_name, s3_key, local_path):
+# Function to download files from a public S3 URL
+def download_file_from_s3(url, local_path):
     try:
-        s3_client.download_file(bucket_name, s3_key, local_path)
-        print(f"Downloaded {s3_key} successfully.")
+        urllib.request.urlretrieve(url, local_path)
+        print(f"Downloaded {url} successfully.")
     except Exception as e:
-        st.error(f"Failed to download {s3_key} from S3: {str(e)}")
+        st.error(f"Failed to download {url}: {str(e)}")
         raise
 
 # Streamlit app setup
@@ -52,9 +39,9 @@ if uploaded_file is not None:
 
     # Download the model components from S3
     with st.spinner("Downloading model files..."):
-        download_file_from_s3(BUCKET_NAME, MODEL_KEY, model_path)
-        download_file_from_s3(BUCKET_NAME, CONFIG_KEY, config_path)
-        download_file_from_s3(BUCKET_NAME, PREPROCESSOR_KEY, preprocessor_path)
+        download_file_from_s3(f"{BUCKET_URL}{MODEL_KEY}", model_path)
+        download_file_from_s3(f"{BUCKET_URL}{CONFIG_KEY}", config_path)
+        download_file_from_s3(f"{BUCKET_URL}{PREPROCESSOR_KEY}", preprocessor_path)
 
     # Load model configuration and preprocessor
     config = AutoConfig.from_pretrained(config_path)
