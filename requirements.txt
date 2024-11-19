@@ -1,0 +1,6 @@
+streamlit
+torch
+boto3
+transformers
+safetensors
+Pillow
